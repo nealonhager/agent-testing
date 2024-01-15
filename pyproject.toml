@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "agent-testing"
+version = "0.1.0"
+description = ""
+authors = ["Nealon Hager <nealonhager@gmail.com>"]
+readme = "README.md"
+packages = [{include = "agent_testing"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+openai = "^1.7.2"
+python-dotenv = "^1.0.0"
+names = "^0.3.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
