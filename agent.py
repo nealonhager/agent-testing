@@ -4,9 +4,11 @@ from typing import Optional
 import names
 import json
 import os
+import logging
 
 
 load_dotenv()
+logging.basicConfig(level=logging.INFO)
 
 
 class Agent:
@@ -36,6 +38,7 @@ class Agent:
         Adds a new message to the message history.
         """
         new_message = {"role": role, "content": message}
+        logging.info(new_message)
         self.messages.append(new_message)
 
     def add_system_message(self, message):
