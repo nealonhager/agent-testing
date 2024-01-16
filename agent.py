@@ -20,12 +20,16 @@ class Agent:
         return f"{json.dumps({'identifier':self.identifier, 'purpose': self.purpose})}"
 
     def generate_response(self) -> str:
-        completion = self._openai_client.chat.completions.create(
-            model=os.getenv("GPT_MODEL"),
-            messages=self.messages,
-        )
+        while True:
+            try:
+                completion = self._openai_client.chat.completions.create(
+                    model=os.getenv("GPT_MODEL"),
+                    messages=self.messages,
+                )
 
-        return completion.choices[0].message
+                return completion.choices[0].message
+            except Exception:
+                ...
 
     def _add_message(self, message: str, role: str):
         """
@@ -96,22 +100,3 @@ class Agent:
                     agent.__setattr__(k, v)
 
         return agent
-
-
-if __name__ == "__main__":
-    agent = Agent()
-    initial_prompt = (
-        f"You are a helpful assistant with the alias of '{agent.identifier}'."
-    )
-    print("System:", "\n\t", initial_prompt)
-    agent.add_system_message(initial_prompt)
-    while True:
-        prompt = input(f"User:\n\t")
-        if prompt == "q":
-            break
-        agent.add_user_message(prompt)
-
-        response = agent.generate_response()
-        agent.add_assistant_message(response.content)
-        print(agent.identifier + ":", "\n\t", response.content)
-    agent.export_messages(agent.identifier + "_messages")
