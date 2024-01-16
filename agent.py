@@ -43,16 +43,20 @@ class Agent:
         with open(f"{self.identifier}.json", "w+") as f:
             f.write(json.dumps(filtered_dict, indent=2))
 
-    def load(self, file_name: str):
+    @classmethod
+    def load(cls, file_name: str) -> "Agent":
         """
-        Loads an agent file to the agent.
+        Loads an agent file to a new agent.
         """
         if not file_name.endswith(".json"):
             raise Exception("Cannot open agent save file, not a .json file.")
 
+        agent = Agent()
         filter_out_keys = ["_openai_client"]
         with open(f"{file_name}", "r+") as f:
             data = json.loads(f.read())
             for k, v in data.items():
                 if k not in filter_out_keys:
-                    self.__setattr__(k, v)
+                    agent.__setattr__(k, v)
+
+        return agent

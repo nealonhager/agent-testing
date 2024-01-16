@@ -16,12 +16,6 @@ def agent1():
     yield agent
 
 
-@pytest.fixture
-def agent2():
-    agent = Agent()
-    yield agent
-
-
 def test_save_agent(agent1):
     agent1.save()
     expected_file_name = agent1.identifier + ".json"
@@ -29,10 +23,9 @@ def test_save_agent(agent1):
     delete_file(agent1.identifier + ".json")
 
 
-def test_load_agent(agent1, agent2):
+def test_load_agent(agent1):
     agent1.save()
-    assert agent1 != agent2
-    agent2.load(agent1.identifier + ".json")
+    agent2 = Agent.load(agent1.identifier + ".json")
     assert str(agent1) == str(agent2)
 
     delete_file(agent1.identifier + ".json")
