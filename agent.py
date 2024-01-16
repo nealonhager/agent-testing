@@ -14,13 +14,7 @@ class Agent:
         self.identifier = names.get_full_name()
         self.purpose = purpose
         self._openai_client = OpenAI()
-        self.messages = [
-            {
-                "role": "system",
-                "content": f"You are a helpful assistant with the alias of 'f{self.identifier}'.",
-            },
-            {"role": "user", "content": "Hello, my name is Tim, what's your name?"},
-        ]
+        self.messages = []
 
     def __repr__(self):
         return f"{json.dumps({'identifier':self.identifier, 'purpose': self.purpose})}"
@@ -28,7 +22,7 @@ class Agent:
     def generate_response(self) -> str:
         completion = self._openai_client.chat.completions.create(
             model=os.getenv("GPT_MODEL"),
-            messages=[self.messages],
+            messages=self.messages,
         )
 
         return completion.choices[0].message
@@ -92,3 +86,19 @@ class Agent:
                     agent.__setattr__(k, v)
 
         return agent
+
+
+if __name__ == "__main__":
+    agent = Agent()
+    initial_prompt = (
+        f"You are a helpful assistant with the alias of '{agent.identifier}'."
+    )
+    print("System:", "\n\t", initial_prompt)
+    agent.add_system_message(initial_prompt)
+    while True:
+        prompt = input(f"User:\n\t")
+        agent.add_user_message(prompt)
+
+        response = agent.generate_response()
+        agent.add_assistant_message(response.content)
+        print(agent.identifier + ":", "\n\t", response.content)
