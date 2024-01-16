@@ -14,23 +14,55 @@ class Agent:
         self.identifier = names.get_full_name()
         self.purpose = purpose
         self._openai_client = OpenAI()
+        self.messages = [
+            {
+                "role": "system",
+                "content": f"You are a helpful assistant with the alias of 'f{self.identifier}'.",
+            },
+            {"role": "user", "content": "Hello, my name is Tim, what's your name?"},
+        ]
 
     def __repr__(self):
         return f"{json.dumps({'identifier':self.identifier, 'purpose': self.purpose})}"
 
-    def x(self):
+    def generate_response(self) -> str:
         completion = self._openai_client.chat.completions.create(
             model=os.getenv("GPT_MODEL"),
-            messages=[
-                {
-                    "role": "system",
-                    "content": f"You are a helpful assistant with the alias of 'f{self.identifier}'.",
-                },
-                {"role": "user", "content": "Hello, my name is Tim, what's your name?"},
-            ],
+            messages=[self.messages],
         )
 
-        print(completion.choices[0].message)
+        return completion.choices[0].message
+
+    def _add_message(self, message: str, role: str):
+        """
+        Adds a new message to the message history.
+        """
+        new_message = {"role": role, "content": message}
+        self.messages.append(new_message)
+
+    def add_system_message(self, message):
+        """
+        Adds a new system message to the message history.
+        """
+        self._add_message(message=message, role="system")
+
+    def add_user_message(self, message):
+        """
+        Adds a new user message to the message history.
+        """
+        self._add_message(message=message, role="user")
+
+    def add_assistant_message(self, message):
+        """
+        Adds a new assistant message to the message history.
+        """
+        self._add_message(message=message, role="assistant")
+
+    def add_tool_message(self, message):
+        """
+        Adds a new tool message to the message history.
+        """
+        self._add_message(message=message, role="tool")
 
     def save(self):
         """
