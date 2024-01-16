@@ -69,6 +69,16 @@ class Agent:
         with open(f"{self.identifier}.json", "w+") as f:
             f.write(json.dumps(filtered_dict, indent=2))
 
+    def export_messages(self, file_name: str):
+        """
+        Exports the message history to a .json file
+        """
+        if ".json" not in file_name:
+            file_name += ".json"
+
+        with open(file_name, "w+") as f:
+            f.write(json.dumps({"messages": self.messages}, indent=2))
+
     @classmethod
     def load(cls, file_name: str) -> "Agent":
         """
@@ -97,8 +107,11 @@ if __name__ == "__main__":
     agent.add_system_message(initial_prompt)
     while True:
         prompt = input(f"User:\n\t")
+        if prompt == "q":
+            break
         agent.add_user_message(prompt)
 
         response = agent.generate_response()
         agent.add_assistant_message(response.content)
         print(agent.identifier + ":", "\n\t", response.content)
+    agent.export_messages(agent.identifier + "_messages")
