@@ -12,26 +12,30 @@ logging.basicConfig(level=logging.INFO)
 
 
 class Agent:
-    def __init__(self, purpose: Optional[str] = None):
-        self.identifier = names.get_full_name()
-        self.purpose = purpose
-        self._openai_client = OpenAI()
+    def __init__(self, task: str, backstory: str):
+        self.task = task
+        self.backstory = backstory
+        self._client = OpenAI()
         self.messages = []
-
-    def __repr__(self):
-        return f"{json.dumps({'identifier':self.identifier, 'purpose': self.purpose})}"
+        self.add_system_message(backstory)
+        self.add_user_message(task)
 
     def generate_response(self) -> str:
+        """
+        Generates a response from the model, adds the response to the message history.
+        """
         while True:
             try:
-                completion = self._openai_client.chat.completions.create(
+                completion = self._client.chat.completions.create(
                     model=os.getenv("GPT_MODEL"),
                     messages=self.messages,
                 )
 
-                return completion.choices[0].message
+                response = completion.choices[0].message.content
+                self.add_assistant_message(response)
+                return response
             except Exception:
-                ...
+                logging.warning("There was a problem generating a response. Retrying.")
 
     def _add_message(self, message: str, role: str):
         """
@@ -65,41 +69,11 @@ class Agent:
         """
         self._add_message(message=message, role="tool")
 
-    def save(self):
-        """
-        Saves agent info to a file.
-        """
-        filter_out_keys = ["_openai_client"]
-        filtered_dict = {
-            k: v for k, v in self.__dict__.items() if k not in filter_out_keys
-        }
-        with open(f"{self.identifier}.json", "w+") as f:
-            f.write(json.dumps(filtered_dict, indent=2))
 
-    def export_messages(self, file_name: str):
-        """
-        Exports the message history to a .json file
-        """
-        if ".json" not in file_name:
-            file_name += ".json"
-
-        with open(file_name, "w+") as f:
-            f.write(json.dumps({"messages": self.messages}, indent=2))
-
-    @classmethod
-    def load(cls, file_name: str) -> "Agent":
-        """
-        Loads an agent file to a new agent.
-        """
-        if not file_name.endswith(".json"):
-            raise Exception("Cannot open agent save file, not a .json file.")
-
-        agent = Agent()
-        filter_out_keys = ["_openai_client"]
-        with open(f"{file_name}", "r+") as f:
-            data = json.loads(f.read())
-            for k, v in data.items():
-                if k not in filter_out_keys:
-                    agent.__setattr__(k, v)
-
-        return agent
+if __name__ == "__main__":
+    agent = Agent(
+        task="Generate a thought about oranges.",
+        backstory="you are an AI with the purpose of simulating the human thought process, you can think whatever you want as you mirror the human thought, not what humans say or do.",
+    )
+    agent.generate_response()
+    print(agent.messages)
