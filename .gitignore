@@ -2,3 +2,4 @@
 **/.vscode/**
 custom_agents.py
 .log
+history.txt

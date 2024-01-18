@@ -18,7 +18,7 @@ class Agent:
         self.add_system_message(backstory)
         self.add_user_message(task)
 
-    def call_function(self) -> str:
+    def execute_task(self) -> str:
         """
         Generates a response from the model, adds the response to the message history.
         """
@@ -74,7 +74,7 @@ class FunctionCallingAgent(Agent):
         self.tools = tools
         self.function_map = function_map
 
-    def call_function(self) -> list:
+    def execute_task(self) -> list:
         """
         Calls function suggested by the model. Returns the result of the function call.
         """
@@ -111,7 +111,7 @@ if __name__ == "__main__":
             "this is because you just mirror human thought, and don't have to worry about if it's appropriate to say to someone else."
         ),
     )
-    thought = thought_agent.call_function()
+    thought = thought_agent.execute_task()
 
     def start_conversation(**kwargs):
         cont = kwargs.get("start", False)
@@ -150,7 +150,7 @@ if __name__ == "__main__":
         ],
         function_map={"start_conversation": start_conversation},
     )
-    start_conversation = True in start_conversation_agent.call_function()
+    start_conversation = True in start_conversation_agent.execute_task()
 
     if start_conversation:
         conversation_agent = Agent(
@@ -163,4 +163,4 @@ if __name__ == "__main__":
         conversation_agent.add_system_message(
             "Please start get the conversation about the topic started with a greeting."
         )
-        conversation_agent.call_function()
+        conversation_agent.execute_task()
