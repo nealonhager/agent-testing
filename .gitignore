@@ -1,3 +1,4 @@
 .env
 **/.vscode/**
 custom_agents.py
+.log

@@ -1,14 +1,12 @@
 from dotenv import load_dotenv
 from openai import OpenAI
-from typing import Optional
-import names
 import json
 import os
 import logging
 
 
 load_dotenv()
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(filename=".log", filemode="w+", level=logging.INFO)
 
 
 class Agent:
@@ -20,7 +18,7 @@ class Agent:
         self.add_system_message(backstory)
         self.add_user_message(task)
 
-    def generate_response(self) -> str:
+    def call_function(self) -> str:
         """
         Generates a response from the model, adds the response to the message history.
         """
@@ -34,7 +32,7 @@ class Agent:
                 response = completion.choices[0].message.content
                 self.add_assistant_message(response)
                 return response
-            except Exception:
+            except Exception as e:
                 logging.warning("There was a problem generating a response. Retrying.")
 
     def _add_message(self, message: str, role: str):
@@ -70,10 +68,99 @@ class Agent:
         self._add_message(message=message, role="tool")
 
 
+class FunctionCallingAgent(Agent):
+    def __init__(self, task: str, backstory: str, tools: list, function_map: dict):
+        super().__init__(task=task, backstory=backstory)
+        self.tools = tools
+        self.function_map = function_map
+
+    def call_function(self) -> list:
+        """
+        Calls function suggested by the model. Returns the result of the function call.
+        """
+        while True:
+            try:
+                completion = self._client.chat.completions.create(
+                    model=os.getenv("GPT_MODEL"),
+                    messages=self.messages,
+                    tools=self.tools,
+                    tool_choice="auto",
+                )
+
+                tool_calls = completion.choices[0].message.tool_calls
+                function_responses = []
+                if tool_calls:
+                    for tool_call in tool_calls:
+                        function_name = tool_call.function.name
+                        function_to_call = self.function_map[function_name]
+                        function_args = json.loads(tool_call.function.arguments)
+                        function_response = function_to_call(
+                            start=function_args.get("start"),
+                        )
+                        function_responses.append(function_response)
+                return function_responses
+            except Exception as e:
+                logging.warning("There was a problem generating a response. Retrying.")
+
+
 if __name__ == "__main__":
-    agent = Agent(
-        task="Generate a thought about oranges.",
-        backstory="you are an AI with the purpose of simulating the human thought process, you can think whatever you want as you mirror the human thought, not what humans say or do.",
+    thought_agent = Agent(
+        task="Generate a thought someone might have on a walk to meet an old friend at a coffee shop.",
+        backstory=(
+            "your purpose is simulating the human thought process, you can think whatever you want no matter how crass or vanilla. "
+            "this is because you just mirror human thought, and don't have to worry about if it's appropriate to say to someone else."
+        ),
     )
-    agent.generate_response()
-    print(agent.messages)
+    thought = thought_agent.call_function()
+
+    def start_conversation(**kwargs):
+        cont = kwargs.get("start", False)
+        logging.info(f"start conversation: {cont}")
+        return cont
+
+    start_conversation_agent = FunctionCallingAgent(
+        task=thought,
+        backstory=(
+            "your purpose is determining if you feel like you want to talk to someone about the given topic. "
+            "This decision is up to you, if you think the topic is interesting and would make good conversation. "
+            "The next message will be the topic."
+        ),
+        tools=[
+            {
+                "type": "function",
+                "function": {
+                    "name": "start_conversation",
+                    "description": "To start conversation or not.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "start": {
+                                "type": "boolean",
+                                "description": "If a conversation should start from this topic.",
+                            },
+                            # "unit": {
+                            #     "type": "string",
+                            #     "enum": ["celsius", "fahrenheit"],
+                            # },
+                        },
+                        "required": ["start"],
+                    },
+                },
+            }
+        ],
+        function_map={"start_conversation": start_conversation},
+    )
+    start_conversation = True in start_conversation_agent.call_function()
+
+    if start_conversation:
+        conversation_agent = Agent(
+            task=f"Conversation Topic: '{thought}.'",
+            backstory=(
+                "Your purpose is to generate a conversation starter based on the given topic. "
+                "It should feel like a conversation between old friends, with some sarcasm and jokes sprinkled in."
+            ),
+        )
+        conversation_agent.add_system_message(
+            "Please start get the conversation about the topic started with a greeting."
+        )
+        conversation_agent.call_function()
