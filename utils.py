@@ -1,5 +1,6 @@
 from typing import Optional
 from agent import Agent
+import inspect
 
 
 class History:
@@ -41,3 +42,28 @@ class History:
             )
 
         return summary_agent.execute_task()
+
+
+def extract_methods(cls, hide_private: bool = True) -> dict:
+    """
+    Returns all of the methods in an object, their params, and param type hints.
+
+    Args:
+        hide_private: Filters out methods that start with '_'
+    """
+    methods_params_dict = {}
+    for name, method in inspect.getmembers(cls, predicate=inspect.isfunction):
+        if hide_private and name.startswith("_"):
+            continue
+        signature = inspect.signature(method)
+        params = {}
+        for param_name, param in signature.parameters.items():
+            if param_name == "self":
+                continue
+            if param.annotation != inspect.Parameter.empty:
+                type_name = param.annotation.__name__
+            else:
+                type_name = None
+            params[param_name] = type_name
+        methods_params_dict[name] = {"params": params}
+    return methods_params_dict
