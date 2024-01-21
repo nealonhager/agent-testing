@@ -64,11 +64,10 @@ class Character:
         tools = extract_methods(type(self))
         tools = {tool: params for tool, params in tools.items() if tool != "react"}
         self.agent.add_system_message(f"{action} What do you, {self.name} , do? Please use a tool i've given you.")
-        print(tools)
 
-        y = []
+        formatted_tools = []
         for func_name, params in tools.items():
-            y.append(
+            formatted_tools.append(
                 {
                     "type": "function",
                     "function": {
@@ -90,7 +89,7 @@ class Character:
                 completion = self.agent._client.chat.completions.create(
                     model="gpt-4",
                     messages=self.agent.messages,
-                    tools=y,
+                    tools=formatted_tools,
                     tool_choice="auto",
                 )
                 func_info = completion.choices[0].message.tool_calls[0].function
