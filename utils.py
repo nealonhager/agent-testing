@@ -52,16 +52,16 @@ class History:
         return summary_agent.execute_task()
 
 
-def extract_methods(obj, hide_private: bool = True) -> dict:
+def extract_methods(obj, hide_dunder: bool = True) -> dict:
     """
     Returns all of the methods in an object, their params, and param type hints.
 
     Args:
-        hide_private: Filters out methods that start with '_'
+        hide_dunder: Filters out methods that start with '__'
     """
     methods_params_dict = {}
     for name, method in inspect.getmembers(obj, predicate=inspect.isfunction):
-        if hide_private and name.startswith("_"):
+        if hide_dunder and name.startswith("__"):
             continue
         signature = inspect.signature(method)
         params = {}
@@ -74,6 +74,7 @@ def extract_methods(obj, hide_private: bool = True) -> dict:
                 type_name = None
             type_name = "string" if type_name == "str" else type_name
             type_name = "integer" if type_name == "int" else type_name
+            type_name = "boolean" if type_name == "bool" else type_name
             params[param_name] = type_name
         methods_params_dict[name] = {"params": params}
     return methods_params_dict
@@ -82,13 +83,14 @@ def extract_methods(obj, hide_private: bool = True) -> dict:
 client = OpenAI()
 
 
-def tts(text: str):
-    mixer.init()
+def tts(text: str, voice: str = "onyx"):
     print(text)
+    if not int(os.getenv("TTS", 0)):
+        return
+
+    mixer.init()
     response = client.audio.speech.create(
-        model="tts-1",
-        voice="onyx",
-        input=text,
+        model="tts-1", voice=voice, input=text, speed=1.25
     )
 
     response.stream_to_file("temp.mp3")
@@ -96,7 +98,7 @@ def tts(text: str):
     mixer.music.play()
 
     # wait for music to finish playing
-    while mixer.music.get_busy():  
+    while mixer.music.get_busy():
         time.sleep(1)
     mixer.music.stop()
     mixer.quit()
