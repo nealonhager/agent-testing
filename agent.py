@@ -10,13 +10,11 @@ logging.basicConfig(filename=".log", filemode="w+", level=logging.INFO)
 
 
 class Agent:
-    def __init__(self, task: str, backstory: str):
-        self.task = task
+    def __init__(self, backstory: str):
         self.backstory = backstory
         self._client = OpenAI()
         self.messages = []
         self.add_system_message(backstory)
-        self.add_user_message(task)
 
     def execute_task(self) -> str:
         """

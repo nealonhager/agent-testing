@@ -4,3 +4,4 @@ custom_agents.py
 .log
 history.txt
 *.mp3
+*.wav

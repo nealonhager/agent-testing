@@ -1,15 +1,17 @@
 from agent import Agent
 import json
-from utils import extract_methods, tts
+from utils import extract_methods, tts, record_audio
 from collections import defaultdict
 import logging
 import random
+from openai import OpenAI
+import time
 
 
 class Character:
     def __init__(self, name: str, task: str, backstory: str):
         self.name = name
-        self.agent = Agent(task=task, backstory=backstory)
+        self.agent = Agent(backstory=backstory + task)
         self.inventory = []
         self.gold = 100
         self.conversation_history = defaultdict(list)
@@ -87,6 +89,12 @@ class Character:
         self.say(message=f"Thanks, enjoy the {item}, do come again.")
         self.in_conversation_with = None
 
+    def attack(self):
+        print("ATTACK!")
+
+    def use_potion(self, potion_name:str):
+        print(f"use potion {potion_name}")
+
     def react(self, action: str):
         tools = extract_methods(type(self))
         tools = {tool: params for tool, params in tools.items() if tool != "react"}
@@ -133,8 +141,14 @@ class Character:
 
 def have_conversation_with(character: Character):
     character.greet("Nealon")
+    _client = OpenAI()
     while character.in_conversation_with is not None:
-        character.react(input("> "))
+        record_audio()
+        time.sleep(1)
+        transcript = _client.audio.transcriptions.create(
+            model="whisper-1", file=open("./trimmed_output.wav", "rb")
+        )
+        character.react(f'Nealon says: "{transcript.text}"')
 
 
 if __name__ == "__main__":
@@ -148,6 +162,7 @@ if __name__ == "__main__":
             "You should tell someone how much something costs before finalizing the sale. "
             "You talk in the first person, from the shopkeeper's POV. "
             "You are eccentric, and find the humor in everything. "
+            "If attacked, you can use your potions. "
         ),
     )
     questgiver = Character(
@@ -168,10 +183,5 @@ if __name__ == "__main__":
             "You talk in the first person, from Peter's POV."
         ),
     )
-    # conversation_loop(shopkeeper)
-    have_conversation_with(peasant)
-    # conversation_loop(random.choice([questgiver, peasant]))
-    # x = shopkeeper.greet("Peter")
-    # for _ in range(5):
-    #     x = ("Sir Quentin", x)
-    #     questgiver.reply("Peter", x)
+    characters = [shopkeeper, questgiver, peasant]
+    have_conversation_with(questgiver)

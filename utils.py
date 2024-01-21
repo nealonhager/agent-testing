@@ -104,3 +104,59 @@ def tts(text: str, voice: str = "onyx"):
     mixer.quit()
 
     os.remove("temp.mp3")
+
+
+import pyaudio
+import wave
+import keyboard
+from pydub import AudioSegment
+from pydub.silence import detect_nonsilent
+
+def record_audio():
+    # Audio recording parameters
+    FORMAT = pyaudio.paInt16
+    CHANNELS = 1
+    RATE = 44100
+    CHUNK = 1024
+    RECORD_SECONDS = 5
+    WAVE_OUTPUT_FILENAME = "output.wav"
+
+    audio = pyaudio.PyAudio()
+
+    # Start recording
+    stream = audio.open(format=FORMAT, channels=CHANNELS,
+                        rate=RATE, input=True,
+                        frames_per_buffer=CHUNK)
+    print("Recording... Press Space Bar to stop.")
+
+    frames = []
+
+    while True:
+        data = stream.read(CHUNK)
+        frames.append(data)
+        if keyboard.is_pressed('space'):
+            print("Recording stopped.")
+            break
+
+    # Stop and close the stream
+    stream.stop_stream()
+    stream.close()
+    audio.terminate()
+
+    # Save the recorded data as a WAV file
+    waveFile = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
+    waveFile.setnchannels(CHANNELS)
+    waveFile.setsampwidth(audio.get_sample_size(FORMAT))
+    waveFile.setframerate(RATE)
+    waveFile.writeframes(b''.join(frames))
+    waveFile.close()
+
+    # Trimming silence
+    sound = AudioSegment.from_wav(WAVE_OUTPUT_FILENAME)
+    nonsilent_chunks = detect_nonsilent(sound, min_silence_len=500, silence_thresh=-50)
+    trimmed_sound = sound[nonsilent_chunks[0][0]:nonsilent_chunks[-1][1]]
+    trimmed_sound.export("trimmed_output.wav", format="wav")
+
+    print("Saved trimmed recording to 'trimmed_output.wav'.")
+
+    
