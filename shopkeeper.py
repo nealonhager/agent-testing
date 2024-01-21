@@ -41,6 +41,7 @@ class Character:
 
     def reply(self, character: str, message: str):
         self.agent.add_user_message(message)
+        self.conversation_history[character].append(message)
         response = self.agent.execute_task()
         self.conversation_history[character].append(response)
 
@@ -48,9 +49,16 @@ class Character:
 
         return response
 
-    def sell(self, item: str, price: int):
+    def say(self, character: str, message: str):
+        self.agent.add_assistant_message(message)
+        self.conversation_history[character].append(message)
+        tts(message)
+
+
+    def sell(self, character:str, item: str, price: int):
         self.gold += price
-        print(f"sold {item} for {price} gold")
+        print(f"sold {character}: {item} for {price} gold")
+        self.say(character=character, message=f"Thanks, enjoy the {item}, do come again.")
 
     def react(self, action: str):
         tools = extract_methods(type(self))
