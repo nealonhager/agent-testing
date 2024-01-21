@@ -52,7 +52,7 @@ class History:
         return summary_agent.execute_task()
 
 
-def extract_methods(cls, hide_private: bool = True) -> dict:
+def extract_methods(obj, hide_private: bool = True) -> dict:
     """
     Returns all of the methods in an object, their params, and param type hints.
 
@@ -60,7 +60,7 @@ def extract_methods(cls, hide_private: bool = True) -> dict:
         hide_private: Filters out methods that start with '_'
     """
     methods_params_dict = {}
-    for name, method in inspect.getmembers(cls, predicate=inspect.isfunction):
+    for name, method in inspect.getmembers(obj, predicate=inspect.isfunction):
         if hide_private and name.startswith("_"):
             continue
         signature = inspect.signature(method)
@@ -72,6 +72,7 @@ def extract_methods(cls, hide_private: bool = True) -> dict:
                 type_name = param.annotation.__name__
             else:
                 type_name = None
+            type_name = "string" if type_name == "str" else type_name
             params[param_name] = type_name
         methods_params_dict[name] = {"params": params}
     return methods_params_dict
