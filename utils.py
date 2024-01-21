@@ -1,6 +1,14 @@
+from dotenv import load_dotenv
 from typing import Optional
 from agent import Agent
 import inspect
+from openai import OpenAI
+from pygame import mixer
+import os
+import time
+
+
+load_dotenv()
 
 
 class History:
@@ -67,3 +75,28 @@ def extract_methods(cls, hide_private: bool = True) -> dict:
             params[param_name] = type_name
         methods_params_dict[name] = {"params": params}
     return methods_params_dict
+
+
+client = OpenAI()
+
+
+def tts(text: str):
+    mixer.init()
+    print(text)
+    response = client.audio.speech.create(
+        model="tts-1",
+        voice="onyx",
+        input=text,
+    )
+
+    response.stream_to_file("temp.mp3")
+    mixer.music.load("temp.mp3")
+    mixer.music.play()
+
+    # wait for music to finish playing
+    while mixer.music.get_busy():  
+        time.sleep(1)
+    mixer.music.stop()
+    mixer.quit()
+
+    os.remove("temp.mp3")

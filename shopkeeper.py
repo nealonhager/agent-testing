@@ -1,31 +1,61 @@
+from typing import Optional, Union
 from agent import Agent
 import json
-from utils import extract_methods
+from utils import extract_methods, tts
+from collections import defaultdict
+
+
+class Character:
+    def __init__(self, name: str):
+        self.name = name
+        self.agent = Agent(
+            task="Try and get the user to buy a potion you have in stock.",
+            backstory=(
+                f"You simulate being a medieval shopkeeper named {self.name}. "
+                "You sell potions, and nothing else. If someone asks to buy something else, refer them to someone else. "
+                "If someone wants to sell you something, only accept potions."
+            ),
+        )
+        self.inventory = []
+        self.gold = 100
+        self.conversation_history = defaultdict(list)
+
+    def greet(self, character: Union["Character", str], message: Optional[str] = None):
+        try:
+            character = character.name
+        except Exception as _:
+            pass
+
+        if character not in self.conversation_history:
+            self.agent.add_system_message("You greet a character you haven't met before, what do you say?")
+        else:
+            self.agent.add_system_message(f"You greet a character named {character}, what do you say?")
+
+        response = self.agent.execute_task()
+        self.conversation_history[character].append(response)
+
+        tts(response)
+
+        return response
+
+    def talk(self, character: Union["Character", str], message: str):
+        try:
+            character = character.name
+        except Exception as _:
+            pass
+
+        self.agent.add_user_message(message)
+        response = self.agent.execute_task()
+        self.conversation_history[character].append(response)
+
+        tts(response)
+
+        return response
 
 
 if __name__ == "__main__":
-    shopkeeper = Agent(
-        task=(
-            "Please simulate being a medieval shopkeeper. "
-            "You sell potions, and nothing else. If someone asks to buy something else, refer them to someone else. "
-            "If someone wants to sell you something, only accept potions."
-        ),
-        backstory="You are an AI that simulates dialog in an medieval setting.",
-    )
-    shopkeeper.add_assistant_message(
-        "Hello there, I am Sheldon, what kind of potions are you looking for today?"
-    )
-    print(json.dumps(extract_methods(Agent), indent=2))
-    # print(shopkeeper.messages[-1])
-    # print(
-    #     {
-    #         func_name: shopkeeper.__getattribute__(func_name).__code__.co_varnames[
-    #             1 : shopkeeper.__getattribute__(func_name).__code__.co_argcount
-    #         ]
-    #         for func_name in dir(shopkeeper)
-    #         if not func_name.startswith("_")
-    #         and callable(shopkeeper.__getattribute__(func_name))
-    #     }
-    # )
-    # shopkeeper.add_user_message(input("> "))
-    # print(shopkeeper.execute_task())
+    shopkeeper = Character(name="Shopkeeper Sheldon")
+    # print(json.dumps(extract_methods(Agent), indent=2))
+    shopkeeper.greet("Nealon")
+    response = input("> ")
+    shopkeeper.talk("Nealon", response)
