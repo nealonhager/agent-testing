@@ -13,13 +13,13 @@ class Character:
         self.inventory = []
         self.gold = 100
         self.conversation_history = defaultdict(list)
-        self.in_conversation = False
+        self.in_conversation_with = False
         self._voice = random.choice(
             ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
         )
 
     def greet(self, character: str):
-        self.in_conversation = True
+        self.in_conversation_with = character
         if character not in self.conversation_history:
             self.agent.add_system_message(
                 "You greet a character you haven't met before, what do you say?"
@@ -37,13 +37,13 @@ class Character:
         return response
 
     def stop_conversation(self):
-        self.in_conversation = False
+        self.in_conversation_with = None
 
-    def reply(self, character: str, message: str):
+    def reply(self, message: str):
         self.agent.add_user_message(message)
-        self.conversation_history[character].append(message)
+        self.conversation_history[self.in_conversation_with].append(message)
         response = self.agent.execute_task()
-        self.conversation_history[character].append(response)
+        self.conversation_history[self.in_conversation_with].append(response)
 
         tts(response, self._voice)
 
@@ -72,18 +72,20 @@ class Character:
 
         return response
 
-    def say(self, character: str, message: str):
+    def say(self, message: str):
         self.agent.add_assistant_message(message)
-        self.conversation_history[character].append(message)
+        self.conversation_history[self.in_conversation_with].append(message)
         tts(message, self._voice)
 
-    def _confirm_sale(self, character: str, item: str, price: int):
+    def _confirm_sale(self, item: str, price: int):
+        purchased = input(f"Purchase {item} for {price}? (y/N)").strip().lower() == "y"
+        if not purchased:
+            self.react(f"{self.in_conversation_with} rejected the purchase.")
+            return
         self.gold += price
-        logging.info(f"sold {character}: {item} for {price} gold")
-        self.say(
-            character=character, message=f"Thanks, enjoy the {item}, do come again."
-        )
-        self.in_conversation = False
+        logging.info(f"sold {self.in_conversation_with}: {item} for {price} gold")
+        self.say(message=f"Thanks, enjoy the {item}, do come again.")
+        self.in_conversation_with = None
 
     def react(self, action: str):
         tools = extract_methods(type(self))
@@ -129,6 +131,12 @@ class Character:
                 logging.warning("Could not find a function to call.")
 
 
+def have_conversation_with(character: Character):
+    character.greet("Nealon")
+    while character.in_conversation_with is not None:
+        character.react(input("> "))
+
+
 if __name__ == "__main__":
     shopkeeper = Character(
         name="Shopkeeper Sheldon",
@@ -138,38 +146,31 @@ if __name__ == "__main__":
             "You sell potions, and nothing else. If someone asks to buy something else, refer them to someone else. "
             "If someone wants to sell you something, only accept potions. "
             "You should tell someone how much something costs before finalizing the sale. "
-            "You talk in the first person, from the shopkeeper's POV."
+            "You talk in the first person, from the shopkeeper's POV. "
+            "You are eccentric, and find the humor in everything. "
         ),
     )
-    # gamekeeper = Character(
-    #     name="Say when the conversation between Shopkeeper Sheldon and Nealon is over.",
-    #     task="Try and get the user to buy a potion you have in stock.",
-    #     backstory=(
-    #         "You keep track of a roleplaying game. "
-    #         "Say only 'Complete' when the conversation is over."
-    #     ),
-    # )
-    shopkeeper.greet("Nealon")
-    while shopkeeper.in_conversation:
-        shopkeeper.react(input("> "))
-    # questgiver = Character(
-    #     name="Sir Quentin",
-    #     task="Lead the village.",
-    #     backstory=(
-    #         "You simulate being a medieval lord named Sir Quentin. "
-    #         "You look over the village, protecting the people and governing them. "
-    #         "You talk in the first person, from Sir Quentin's POV."
-    #     ),
-    # )
-    # peasant = Character(
-    #     name="Peter",
-    #     task="Get a job in town.",
-    #     backstory=(
-    #         "You simulate being a medieval peasant named Peter. "
-    #         "You work the fields in the day, and drink in the tavern at night. "
-    #         "You talk in the first person, from Peter's POV."
-    #     ),
-    # )
+    questgiver = Character(
+        name="Sir Quentin",
+        task="Lead the village.",
+        backstory=(
+            "You simulate being a medieval lord named Sir Quentin. "
+            "You rule over the village, protecting the people and governing them. "
+            "You talk in the first person, from Sir Quentin's POV."
+        ),
+    )
+    peasant = Character(
+        name="Peter",
+        task="Get a job in town.",
+        backstory=(
+            "You simulate being a medieval peasant named Peter. "
+            "You work the fields in the day, and drink in the tavern at night. "
+            "You talk in the first person, from Peter's POV."
+        ),
+    )
+    # conversation_loop(shopkeeper)
+    have_conversation_with(peasant)
+    # conversation_loop(random.choice([questgiver, peasant]))
     # x = shopkeeper.greet("Peter")
     # for _ in range(5):
     #     x = ("Sir Quentin", x)
