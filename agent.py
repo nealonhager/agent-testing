@@ -43,25 +43,25 @@ class Agent:
         logging.info(new_message)
         self.messages.append(new_message)
 
-    def add_system_message(self, message):
+    def add_system_message(self, message: str):
         """
         Adds a new system message to the message history.
         """
         self._add_message(message=message, role="system")
 
-    def add_user_message(self, message):
+    def add_user_message(self, message: str):
         """
         Adds a new user message to the message history.
         """
         self._add_message(message=message, role="user")
 
-    def add_assistant_message(self, message):
+    def add_assistant_message(self, message: str):
         """
         Adds a new assistant message to the message history.
         """
         self._add_message(message=message, role="assistant")
 
-    def add_tool_message(self, message):
+    def add_tool_message(self, message: str):
         """
         Adds a new tool message to the message history.
         """

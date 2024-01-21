@@ -1,23 +1,31 @@
+import inspect
 from agent import Agent
+import json
 
 
-def get_function_info(obj) -> dict:
-    # func_names = [func for func in dir(obj) if callable(obj.__getattribute__(func))]
+def extract_methods(cls, hide_private: bool = True) -> dict:
+    """
+    Returns all of the methods in an object, their params, and param type hints.
 
-    # x = dict()
-    # for func_name in func_names:
-    #     x[func_name] = obj.__getattribute__(func_name).__code__.co_varnames[1:obj.__getattribute__(func_name).__code__.co_argcount]
-
-    # return x
-
-    return {
-        func_name: shopkeeper.__getattribute__(func_name).__code__.co_varnames[
-            1 : shopkeeper.__getattribute__(func_name).__code__.co_argcount
-        ]
-        for func_name in dir(shopkeeper)
-        if not func_name.startswith("_")
-        and callable(shopkeeper.__getattribute__(func_name))
-    }
+    Args:
+        hide_private: Filters out methods that start with '_'
+    """
+    methods_params_dict = {}
+    for name, method in inspect.getmembers(cls, predicate=inspect.isfunction):
+        if hide_private and name.startswith("_"):
+            continue
+        signature = inspect.signature(method)
+        params = {}
+        for param_name, param in signature.parameters.items():
+            if param_name == "self":
+                continue
+            if param.annotation != inspect.Parameter.empty:
+                type_name = param.annotation.__name__
+            else:
+                type_name = None
+            params[param_name] = type_name
+        methods_params_dict[name] = {"params": params}
+    return methods_params_dict
 
 
 if __name__ == "__main__":
@@ -32,7 +40,7 @@ if __name__ == "__main__":
     shopkeeper.add_assistant_message(
         "Hello there, I am Sheldon, what kind of potions are you looking for today?"
     )
-    print(get_function_info(shopkeeper))
+    print(json.dumps(extract_methods(Agent), indent=2))
     # print(shopkeeper.messages[-1])
     # print(
     #     {
