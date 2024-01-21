@@ -48,6 +48,10 @@ class Character:
 
         return response
 
+    def sell(self, item: str, price: int):
+        self.gold += price
+        print(f"sold {item} for {price} gold")
+
     def react(self, action: str):
         tools = extract_methods(type(self))
         tools = {tool: params for tool, params in tools.items() if tool != "react"}
@@ -84,7 +88,7 @@ class Character:
                 func_info = completion.choices[0].message.tool_calls[0].function
                 func_name = func_info.name
                 func_args = json.loads(func_info.arguments)
-                self.__getattribute__(func_name)(*func_args)
+                self.__getattribute__(func_name)(**func_args)
                 break
             except Exception as e:
                 print("!")
@@ -94,5 +98,5 @@ class Character:
 if __name__ == "__main__":
     shopkeeper = Character(name="Shopkeeper Sheldon")
     shopkeeper.react(
-        "A character in a hood walks in, and challenged you to a duel for all your items."
+        "A stranger buys a health potion for 5 gold."
     )

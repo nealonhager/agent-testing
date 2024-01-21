@@ -73,6 +73,7 @@ def extract_methods(obj, hide_private: bool = True) -> dict:
             else:
                 type_name = None
             type_name = "string" if type_name == "str" else type_name
+            type_name = "integer" if type_name == "int" else type_name
             params[param_name] = type_name
         methods_params_dict[name] = {"params": params}
     return methods_params_dict
