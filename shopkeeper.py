@@ -7,17 +7,9 @@ from openai import OpenAI
 
 
 class Character:
-    def __init__(self, name: str):
+    def __init__(self, name: str, task: str, backstory: str):
         self.name = name
-        self.agent = Agent(
-            task="Try and get the user to buy a potion you have in stock.",
-            backstory=(
-                f"You simulate being a medieval shopkeeper named {self.name}. "
-                "You sell potions, and nothing else. If someone asks to buy something else, refer them to someone else. "
-                "If someone wants to sell you something, only accept potions. "
-                "You talk in the first person, from the shopkeeper's POV."
-            ),
-        )
+        self.agent = Agent(task=task, backstory=backstory)
         self.inventory = []
         self.gold = 100
         self.conversation_history = defaultdict(list)
@@ -54,16 +46,19 @@ class Character:
         self.conversation_history[character].append(message)
         tts(message)
 
-
-    def sell(self, character:str, item: str, price: int):
+    def sell(self, character: str, item: str, price: int):
         self.gold += price
         print(f"sold {character}: {item} for {price} gold")
-        self.say(character=character, message=f"Thanks, enjoy the {item}, do come again.")
+        self.say(
+            character=character, message=f"Thanks, enjoy the {item}, do come again."
+        )
 
     def react(self, action: str):
         tools = extract_methods(type(self))
         tools = {tool: params for tool, params in tools.items() if tool != "react"}
-        self.agent.add_system_message(f"{action} What do you, {self.name} , do? Please use a tool i've given you.")
+        self.agent.add_system_message(
+            f"{action} What do you, {self.name} , do? Please use a tool i've given you."
+        )
 
         formatted_tools = []
         for func_name, params in tools.items():
@@ -101,9 +96,15 @@ class Character:
                 print("!")
 
 
-
 if __name__ == "__main__":
-    shopkeeper = Character(name="Shopkeeper Sheldon")
-    shopkeeper.react(
-        "A stranger buys a health potion for 5 gold."
+    shopkeeper = Character(
+        name="Shopkeeper Sheldon",
+        task="Try and get the user to buy a potion you have in stock.",
+        backstory=(
+            "You simulate being a medieval shopkeeper named Shopkeeper Sheldon. "
+            "You sell potions, and nothing else. If someone asks to buy something else, refer them to someone else. "
+            "If someone wants to sell you something, only accept potions. "
+            "You talk in the first person, from the shopkeeper's POV."
+        ),
     )
+    shopkeeper.react("A stranger buys a health potion for 5 gold.")
