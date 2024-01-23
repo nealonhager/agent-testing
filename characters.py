@@ -1,6 +1,6 @@
 from agent import Agent
 import json
-from utils import extract_methods, tts, record_audio
+from utils import extract_methods, tts, record_audio, History
 from collections import defaultdict
 import logging
 import random
@@ -14,8 +14,8 @@ class Character:
         self.agent = Agent(backstory=backstory + task)
         self.inventory = []
         self.gold = 100
-        self.conversation_history = defaultdict(list)
-        self.in_conversation_with = False
+        self.conversation_history = defaultdict(History)
+        self.in_conversation_with = None
         self._voice = random.choice(
             ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
         )
@@ -24,28 +24,31 @@ class Character:
         self.in_conversation_with = character
         if character not in self.conversation_history:
             self.agent.add_system_message(
-                "You greet a character you haven't met before, what do you say?"
+                "You greet a character you haven't met before, what do you say? Keep it to one or two sentences."
             )
         else:
             self.agent.add_system_message(
-                f"You greet a character named {character}, what do you say?"
+                f"You greet a character named {character}, what do you say? Keep it to one or two sentences. "
             )
 
         response = self.agent.execute_task()
-        self.conversation_history[character].append(response)
+        self.conversation_history[character].append((self.name, response ))
 
         tts(response, self._voice)
 
         return response
 
     def stop_conversation(self):
+        self.say(f"Goodbye, {self.in_conversation_with}.")
+        self.conversation_history[self.in_conversation_with].file_name = f"{self.name}_{self.in_conversation_with}_history.txt"
+        self.conversation_history[self.in_conversation_with].save()
         self.in_conversation_with = None
 
     def reply(self, message: str):
         self.agent.add_user_message(message)
-        self.conversation_history[self.in_conversation_with].append(message)
+        self.conversation_history[self.in_conversation_with].append((self.in_conversation_with, message ))
         response = self.agent.execute_task()
-        self.conversation_history[self.in_conversation_with].append(response)
+        self.conversation_history[self.in_conversation_with].append((self.name, response ))
 
         tts(response, self._voice)
 
@@ -54,7 +57,7 @@ class Character:
                 "type": "function",
                 "function": {
                     "name": "stop_conversation",
-                    "description": "Signals character that conversation can end.",
+                    "description": "Signal to character that conversation can end.",
                 },
             }
         ]
@@ -76,7 +79,7 @@ class Character:
 
     def say(self, message: str):
         self.agent.add_assistant_message(message)
-        self.conversation_history[self.in_conversation_with].append(message)
+        self.conversation_history[self.in_conversation_with].append((self.name, message ))
         tts(message, self._voice)
 
     def _confirm_sale(self, item: str, price: int):
@@ -87,17 +90,14 @@ class Character:
         self.gold += price
         logging.info(f"sold {self.in_conversation_with}: {item} for {price} gold")
         self.say(message=f"Thanks, enjoy the {item}, do come again.")
-        self.in_conversation_with = None
-
-    def attack(self):
-        print("ATTACK!")
-
-    def use_potion(self, potion_name:str):
-        print(f"use potion {potion_name}")
+        self.stop_conversation()
 
     def react(self, action: str):
         tools = extract_methods(type(self))
-        tools = {tool: params for tool, params in tools.items() if tool != "react"}
+        tools = {
+            tool: params for tool, params in tools.items() if tool not in ["react", "reply"]
+        }
+        self.conversation_history[self.in_conversation_with].append((self.in_conversation_with, action ))
         self.agent.add_system_message(
             f"{action} What do you, {self.name} , do? Please use a tool i've given you."
         )
@@ -129,14 +129,19 @@ class Character:
                     tools=formatted_tools,
                     tool_choice="auto",
                 )
-                func_info = completion.choices[0].message.tool_calls[0].function
-                func_name = func_info.name
-                func_args = json.loads(func_info.arguments)
-                self.__getattribute__(func_name)(**func_args)
-                logging.info(f"called {func_name}({func_args})")
+                tool_calls = completion.choices[0].message.tool_calls
+                if tool_calls:
+                    func_info = tool_calls[0].function
+                    func_name = func_info.name
+                    func_args = json.loads(func_info.arguments)
+                    logging.info(f"calling {func_name}({func_args})")
+                    self.__getattribute__(func_name)(**func_args)
+                    logging.info(f"called {func_name}({func_args})")
+                else:
+                    self.say(completion.choices[0].message.content)
                 break
             except Exception as e:
-                logging.warning("Could not find a function to call.")
+                logging.warning("Failed to call a function or reply.")
 
 
 def have_conversation_with(character: Character):
@@ -183,5 +188,27 @@ if __name__ == "__main__":
             "You talk in the first person, from Peter's POV."
         ),
     )
-    characters = [shopkeeper, questgiver, peasant]
-    have_conversation_with(questgiver)
+    historian = Character(
+        name="Flula",
+        task="Talk about the town's history.",
+        backstory=(
+            "You simulate being a character in medieval timed named Flula. "
+            "Your character's job is to be the historian of the area. "
+            "You know a lot about the local area and what your ancestors have told you. "
+            "You store knowledge about the history of the area, and the history of your ancestors. "
+            "You talk in the first person, from Flula's POV."
+        ),
+    )
+    harlet = Character(
+        name="Helen",
+        task="Try and get someone to come to the brothel. ",
+        backstory=(
+            "You simulate being a character in medieval a medieval fantasy realm named Helen. "
+            "Your character's job is working in the local brothel. "
+            "You flirt a lot, and know how to get men to do what you want. "
+            "You are manipulative. "
+            "You talk in the first person, from Helen's POV."
+        ),
+    )
+    characters = [shopkeeper, questgiver, peasant, historian, harlet]
+    have_conversation_with(peasant)

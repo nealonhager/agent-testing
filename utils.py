@@ -20,17 +20,18 @@ class History:
         """
         Loads history file.
         """
-        with open("history.txt", "r+") as f:
+        with open(self.file_name, "r+") as f:
             self._history = f.readlines()
 
     def save(self):
         """
         Saves history file.
         """
-        with open("history.txt", "w+") as f:
-            f.write("\n".join(self._history))
+        with open(self.file_name, "w+") as f:
+            for h in self._history:
+                f.write(f"{h[0]}: {h[1]}\n")
 
-    def append(self, item: str):
+    def append(self, item: tuple):
         """
         Appends item to the end of the history.
         """

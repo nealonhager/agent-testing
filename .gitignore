@@ -2,6 +2,6 @@
 **/.vscode/**
 custom_agents.py
 .log
-history.txt
+*history.txt
 *.mp3
 *.wav
