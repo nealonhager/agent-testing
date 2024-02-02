@@ -1,4 +1,4 @@
-from agent import Agent
+from agent import Agent, Role
 import json
 from utils import extract_methods, tts, record_audio, History
 from collections import defaultdict
@@ -23,12 +23,14 @@ class Character:
     def greet(self, character: str):
         self.in_conversation_with = character
         if character not in self.conversation_history:
-            self.agent.add_system_message(
-                "You greet a character you haven't met before, what do you say? Keep it to one or two sentences."
+            self.agent.add_message(
+                "You greet a character you haven't met before, what do you say? Keep it to one or two sentences.",
+                role=Role.SYSTEM
             )
         else:
-            self.agent.add_system_message(
-                f"You greet a character named {character}, what do you say? Keep it to one or two sentences. "
+            self.agent.add_message(
+                f"You greet a character named {character}, what do you say? Keep it to one or two sentences. ",
+                role=Role.SYSTEM
             )
 
         response = self.agent.execute_task()
@@ -45,7 +47,7 @@ class Character:
         self.in_conversation_with = None
 
     def reply(self, message: str):
-        self.agent.add_user_message(message)
+        self.agent.add_message(message, role=Role.USER)
         self.conversation_history[self.in_conversation_with].append((self.in_conversation_with, message ))
         response = self.agent.execute_task()
         self.conversation_history[self.in_conversation_with].append((self.name, response ))
@@ -78,7 +80,7 @@ class Character:
         return response
 
     def say(self, message: str):
-        self.agent.add_assistant_message(message)
+        self.agent.add_message(message, role=Role.ASSISTANT)
         self.conversation_history[self.in_conversation_with].append((self.name, message ))
         tts(message, self._voice)
 
@@ -98,8 +100,9 @@ class Character:
             tool: params for tool, params in tools.items() if tool not in ["react", "reply"]
         }
         self.conversation_history[self.in_conversation_with].append((self.in_conversation_with, action ))
-        self.agent.add_system_message(
-            f"{action} What do you, {self.name} , do? Please use a tool i've given you."
+        self.agent.add_message(
+            f"{action} What do you, {self.name} , do? Please use a tool i've given you.",
+            role=Role.SYSTEM
         )
 
         formatted_tools = []

@@ -1,11 +1,16 @@
 from dotenv import load_dotenv
 from typing import Optional
-from agent import Agent
+from agent import Agent, Role
 import inspect
 from openai import OpenAI
 from pygame import mixer
 import os
 import time
+import pyaudio
+import wave
+import keyboard
+from pydub import AudioSegment
+from pydub.silence import detect_nonsilent
 
 
 load_dotenv()
@@ -46,8 +51,9 @@ class History:
             backstory="Your job is to summarize the events in this list of history.",
         )
         if topic:
-            summary_agent.add_system_message(
-                f"Please focus your summary of this history only around the topic '{topic}'"
+            summary_agent.add_message(
+                f"Please focus your summary of this history only around the topic '{topic}'",
+                role=Role.SYSTEM
             )
 
         return summary_agent.execute_task()
@@ -107,11 +113,6 @@ def tts(text: str, voice: str = "onyx"):
     os.remove("temp.mp3")
 
 
-import pyaudio
-import wave
-import keyboard
-from pydub import AudioSegment
-from pydub.silence import detect_nonsilent
 
 def record_audio():
     # Audio recording parameters

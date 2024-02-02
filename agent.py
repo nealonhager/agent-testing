@@ -3,10 +3,18 @@ from openai import OpenAI
 import json
 import os
 import logging
+from enum import Enum
 
 
 load_dotenv()
 logging.basicConfig(filename=".log", filemode="w+", level=logging.INFO)
+
+
+class Role(str, Enum):
+    SYSTEM = "system"
+    USER = "system"
+    ASSISTANT = "system"
+    TOOL = "system"
 
 
 class Agent:
@@ -14,7 +22,7 @@ class Agent:
         self.backstory = backstory
         self._client = OpenAI()
         self.messages = []
-        self.add_system_message(backstory)
+        self.add_message(backstory, role=Role.SYSTEM)
 
     def execute_task(self) -> str:
         """
@@ -28,42 +36,18 @@ class Agent:
                 )
 
                 response = completion.choices[0].message.content
-                self.add_assistant_message(response)
+                self.add_message(response, role=Role.ASSISTANT)
                 return response
             except Exception as e:
                 logging.warning("There was a problem generating a response. Retrying.")
 
-    def _add_message(self, message: str, role: str):
+    def add_message(self, message: str, role: Role):
         """
         Adds a new message to the message history.
         """
         new_message = {"role": role, "content": message}
         logging.info(new_message)
         self.messages.append(new_message)
-
-    def add_system_message(self, message: str):
-        """
-        Adds a new system message to the message history.
-        """
-        self._add_message(message=message, role="system")
-
-    def add_user_message(self, message: str):
-        """
-        Adds a new user message to the message history.
-        """
-        self._add_message(message=message, role="user")
-
-    def add_assistant_message(self, message: str):
-        """
-        Adds a new assistant message to the message history.
-        """
-        self._add_message(message=message, role="assistant")
-
-    def add_tool_message(self, message: str):
-        """
-        Adds a new tool message to the message history.
-        """
-        self._add_message(message=message, role="tool")
 
 
 class FunctionCallingAgent(Agent):
@@ -158,7 +142,8 @@ if __name__ == "__main__":
                 "It should feel like a conversation between old friends, with some sarcasm and jokes sprinkled in."
             ),
         )
-        conversation_agent.add_system_message(
-            "Please start get the conversation about the topic started with a greeting."
+        conversation_agent.add_message(
+            "Please start get the conversation about the topic started with a greeting.",
+            role=Role.SYSTEM
         )
         conversation_agent.execute_task()
