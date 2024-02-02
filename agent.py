@@ -24,10 +24,11 @@ class Agent:
         self.messages = []
         self.add_message(backstory, role=Role.SYSTEM)
 
-    def execute_task(self) -> str:
+    def execute_task(self, task: str, role: Role = Role.SYSTEM) -> str:
         """
         Generates a response from the model, adds the response to the message history.
         """
+        self.add_message(task, role=role)
         while True:
             try:
                 completion = self._client.chat.completions.create(
@@ -84,66 +85,3 @@ class FunctionCallingAgent(Agent):
             except Exception as e:
                 logging.warning("There was a problem generating a response. Retrying.")
 
-
-if __name__ == "__main__":
-    thought_agent = Agent(
-        task="Generate a thought someone might have on a walk to meet an old friend at a coffee shop.",
-        backstory=(
-            "your purpose is simulating the human thought process, you can think whatever you want no matter how crass or vanilla. "
-            "this is because you just mirror human thought, and don't have to worry about if it's appropriate to say to someone else."
-        ),
-    )
-    thought = thought_agent.execute_task()
-
-    def start_conversation(**kwargs):
-        cont = kwargs.get("start", False)
-        logging.info(f"start conversation: {cont}")
-        return cont
-
-    start_conversation_agent = FunctionCallingAgent(
-        task=thought,
-        backstory=(
-            "your purpose is determining if you feel like you want to talk to someone about the given topic. "
-            "This decision is up to you, if you think the topic is interesting and would make good conversation. "
-            "The next message will be the topic."
-        ),
-        tools=[
-            {
-                "type": "function",
-                "function": {
-                    "name": "start_conversation",
-                    "description": "To start conversation or not.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "start": {
-                                "type": "boolean",
-                                "description": "If a conversation should start from this topic.",
-                            },
-                            # "unit": {
-                            #     "type": "string",
-                            #     "enum": ["celsius", "fahrenheit"],
-                            # },
-                        },
-                        "required": ["start"],
-                    },
-                },
-            }
-        ],
-        function_map={"start_conversation": start_conversation},
-    )
-    start_conversation = True in start_conversation_agent.execute_task()
-
-    if start_conversation:
-        conversation_agent = Agent(
-            task=f"Conversation Topic: '{thought}.'",
-            backstory=(
-                "Your purpose is to generate a conversation starter based on the given topic. "
-                "It should feel like a conversation between old friends, with some sarcasm and jokes sprinkled in."
-            ),
-        )
-        conversation_agent.add_message(
-            "Please start get the conversation about the topic started with a greeting.",
-            role=Role.SYSTEM
-        )
-        conversation_agent.execute_task()

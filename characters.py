@@ -22,19 +22,14 @@ class Character:
 
     def greet(self, character: str):
         self.in_conversation_with = character
-        if character not in self.conversation_history:
-            self.agent.add_message(
-                "You greet a character you haven't met before, what do you say? Keep it to one or two sentences.",
-                role=Role.SYSTEM
-            )
-        else:
-            self.agent.add_message(
-                f"You greet a character named {character}, what do you say? Keep it to one or two sentences. ",
-                role=Role.SYSTEM
-            )
+        msg = (
+            "You greet a character you haven't met before, what do you say? Keep it to one or two sentences."
+            if character not in self.conversation_history
+            else f"You greet a character named {character}, what do you say? Keep it to one or two sentences. "
+        )
 
-        response = self.agent.execute_task()
-        self.conversation_history[character].append((self.name, response ))
+        response = self.agent.execute_task(msg)
+        self.conversation_history[character].append((self.name, response))
 
         tts(response, self._voice)
 
@@ -42,15 +37,20 @@ class Character:
 
     def stop_conversation(self):
         self.say(f"Goodbye, {self.in_conversation_with}.")
-        self.conversation_history[self.in_conversation_with].file_name = f"{self.name}_{self.in_conversation_with}_history.txt"
+        self.conversation_history[
+            self.in_conversation_with
+        ].file_name = f"{self.name}_{self.in_conversation_with}_history.txt"
         self.conversation_history[self.in_conversation_with].save()
         self.in_conversation_with = None
 
     def reply(self, message: str):
-        self.agent.add_message(message, role=Role.USER)
-        self.conversation_history[self.in_conversation_with].append((self.in_conversation_with, message ))
-        response = self.agent.execute_task()
-        self.conversation_history[self.in_conversation_with].append((self.name, response ))
+        self.conversation_history[self.in_conversation_with].append(
+            (self.in_conversation_with, message)
+        )
+        response = self.agent.execute_task(message, role=Role.USER)
+        self.conversation_history[self.in_conversation_with].append(
+            (self.name, response)
+        )
 
         tts(response, self._voice)
 
@@ -81,7 +81,9 @@ class Character:
 
     def say(self, message: str):
         self.agent.add_message(message, role=Role.ASSISTANT)
-        self.conversation_history[self.in_conversation_with].append((self.name, message ))
+        self.conversation_history[self.in_conversation_with].append(
+            (self.name, message)
+        )
         tts(message, self._voice)
 
     def _confirm_sale(self, item: str, price: int):
@@ -97,12 +99,20 @@ class Character:
     def react(self, action: str):
         tools = extract_methods(type(self))
         tools = {
-            tool: params for tool, params in tools.items() if tool not in ["react", "reply"]
+            tool: params
+            for tool, params in tools.items()
+            if tool not in ["react", "reply"]
         }
-        self.conversation_history[self.in_conversation_with].append((self.in_conversation_with, action ))
+        self.conversation_history[self.in_conversation_with].append(
+            (self.in_conversation_with, action)
+        )
         self.agent.add_message(
-            f"{action} What do you, {self.name} , do? Please use a tool i've given you.",
-            role=Role.SYSTEM
+            action,
+            role=Role.SYSTEM,
+        )
+        self.agent.add_message(
+            f"What do you, {self.name}, do? Please use a tool i've given you.",
+            role=Role.SYSTEM,
         )
 
         formatted_tools = []

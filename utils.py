@@ -47,7 +47,6 @@ class History:
         Summarizes the history, can focus on a certain topic/purpose.
         """
         summary_agent = Agent(
-            task="\n".join(self._history),
             backstory="Your job is to summarize the events in this list of history.",
         )
         if topic:
@@ -56,7 +55,7 @@ class History:
                 role=Role.SYSTEM
             )
 
-        return summary_agent.execute_task()
+        return summary_agent.execute_task("\n".join(self._history))
 
 
 def extract_methods(obj, hide_dunder: bool = True) -> dict:
