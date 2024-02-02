@@ -86,7 +86,7 @@ class Character:
         )
         tts(message, self._voice)
 
-    def _confirm_sale(self, item: str, price: int):
+    def sell_item(self, item: str, price: int):
         purchased = input(f"Purchase {item} for {price}? (y/N)").strip().lower() == "y"
         if not purchased:
             self.react(f"{self.in_conversation_with} rejected the purchase.")
@@ -95,6 +95,12 @@ class Character:
         logging.info(f"sold {self.in_conversation_with}: {item} for {price} gold")
         self.say(message=f"Thanks, enjoy the {item}, do come again.")
         self.stop_conversation()
+
+    def buy_item(self, item: str, price: int):
+        self.inventory.append(item)
+        self.gold -= price
+        logging.info(f"{self.name} bought {item} for {price} gold")
+        self.react(f"You just bought {item}.")
 
     def react(self, action: str):
         tools = extract_methods(type(self))
@@ -111,7 +117,9 @@ class Character:
             role=Role.SYSTEM,
         )
         self.agent.add_message(
-            f"What do you, {self.name}, do? Please use a tool i've given you.",
+            (f"How do you, {self.name}, react next? "
+            f"gold: {self.gold}. inventory: {self.inventory}. "
+            "Please use a tool i've given you."),
             role=Role.SYSTEM,
         )
 
