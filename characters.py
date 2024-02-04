@@ -171,10 +171,10 @@ class Character:
                 log.warning("Failed to call a function or reply.")
 
 
-def have_conversation_with(character: Character, characters: list):
+def have_conversation_with(character: Character, characters: list) -> str:
     character.greet("Nealon")
     _client = OpenAI()
-    while character.in_conversation_with is not None:
+    while last := character.in_conversation_with is not None:
         record_audio()
         time.sleep(1)
         transcript = _client.audio.transcriptions.create(
@@ -188,6 +188,8 @@ def have_conversation_with(character: Character, characters: list):
                 character.conversation_history[character.in_conversation_with]._history
             ),
         )
+
+    return character.conversation_history[last].summarize()
 
 
 def create_new_characters(known_characters: list, dialog: str):
@@ -255,6 +257,10 @@ if __name__ == "__main__":
             "Edward called his best knight Nealon to help him. Nealon approaches. "
         ),
     )
+    dm = Agent("You are an AI dungeon master in a medieval role playing game.")
 
     characters = [king_edward]
-    have_conversation_with(king_edward, characters)
+    summary = have_conversation_with(king_edward, characters)
+
+    dm.add_message(summary, role=Role.SYSTEM)
+    print(dm.execute_task("help nealon progress in the game."))
