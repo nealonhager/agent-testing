@@ -1,6 +1,6 @@
 from agent import Agent, Role, execute_lone_task
 import json
-from utils import extract_methods, tts, record_audio, History
+from utils import extract_methods, tts, record_audio, History, log_decorator
 from collections import defaultdict
 import logging
 import random
@@ -20,7 +20,9 @@ class Character:
         self._voice = random.choice(
             ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
         )
+        logging.info(f"New character created: {self.name}")
 
+    @log_decorator
     def greet(self, character: str):
         self.in_conversation_with = character
         msg = (
@@ -95,7 +97,10 @@ class Character:
         self.gold += price
         logging.info(f"sold {self.in_conversation_with}: {item} for {price} gold")
         self.say(message=f"Thanks, enjoy the {item}, do come again.")
-        self.stop_conversation()
+
+    def gift_item(self, item: str):
+        self.inventory.remove(item)
+        logging.info(f"Gifted {self.in_conversation_with}: {item}")
 
     def buy_item(self, item: str, price: int):
         self.inventory.append(item)
@@ -181,7 +186,9 @@ def have_conversation_with(character: Character, characters: list):
 
         create_new_characters(
             known_characters=characters,
-            dialog=json.dumps(character.conversation_history[character.in_conversation_with]._history)
+            dialog=json.dumps(
+                character.conversation_history[character.in_conversation_with]._history
+            ),
         )
 
 
@@ -190,7 +197,7 @@ def create_new_characters(known_characters: list, dialog: str):
         "Please look at the dialog and list of characters, and return only new characters."
     )
     x.add_message(
-        json.dumps({"dialog":"bobby ate cake with peter","characters":["peter"]}),
+        json.dumps({"dialog": "bobby ate cake with peter", "characters": ["peter"]}),
         role=Role.SYSTEM,
     )
     x.add_message(
@@ -198,7 +205,9 @@ def create_new_characters(known_characters: list, dialog: str):
         role=Role.ASSISTANT,
     )
     x.add_message(
-        json.dumps({"dialog":"bobby and randall ate cake with peter","characters":["peter"]}),
+        json.dumps(
+            {"dialog": "bobby and randall ate cake with peter", "characters": ["peter"]}
+        ),
         role=Role.SYSTEM,
     )
     x.add_message(
@@ -206,7 +215,12 @@ def create_new_characters(known_characters: list, dialog: str):
         role=Role.ASSISTANT,
     )
     x.add_message(
-        json.dumps({"dialog":"bobby and randall ate cake with peter","characters":["peter","randall","peter"]}),
+        json.dumps(
+            {
+                "dialog": "bobby and randall ate cake with peter",
+                "characters": ["peter", "randall", "peter"],
+            }
+        ),
         role=Role.SYSTEM,
     )
     x.add_message(
@@ -217,63 +231,32 @@ def create_new_characters(known_characters: list, dialog: str):
         json.dumps({"dialog": dialog, "characters": [c.name for c in known_characters]})
     )
     new_characters = new_characters.split(",")
+    new_characters = [nc.strip() for nc in new_characters if nc]
 
     for c in new_characters:
-        known_characters.append(Character(c,"",""))
+        known_characters.append(
+            Character(
+                c,
+                "You have no specific task at the moment.",
+                (
+                    f"You simulate being a medieval character named {c}. "
+                    f"You talk in the first person, from {c}'s POV. "
+                ),
+            )
+        )
+
 
 if __name__ == "__main__":
-    shopkeeper = Character(
-        name="Shopkeeper Sheldon",
-        task="Try and get the user to buy a potion you have in stock.",
+    king_edward = Character(
+        name="King Edward",
+        task="Protect the kingdom and lead it to prosper.",
         backstory=(
-            "You simulate being a medieval shopkeeper named Shopkeeper Sheldon. "
-            "You sell potions, and nothing else. If someone asks to buy something else, refer them to someone else. "
-            "If someone wants to sell you something, only accept potions. "
-            "You should tell someone how much something costs before finalizing the sale. "
-            "You talk in the first person, from the shopkeeper's POV. "
-            "You are eccentric, and find the humor in everything. "
-            "If attacked, you can use your potions. "
+            "You simulate being a medieval king named Edward. "
+            "You talk in the first person, from King Edwards's POV. "
+            "King Edward just heard word of a dragon terrorizing some farmers in the outskirts of his kingdom. "
+            "Edward called his best knight Nealon to help him. Nealon approaches. "
         ),
     )
-    questgiver = Character(
-        name="Sir Quentin",
-        task="Lead the village.",
-        backstory=(
-            "You simulate being a medieval lord named Sir Quentin. "
-            "You rule over the village, protecting the people and governing them. "
-            "You talk in the first person, from Sir Quentin's POV."
-        ),
-    )
-    peasant = Character(
-        name="Peter",
-        task="Get a job in town.",
-        backstory=(
-            "You simulate being a medieval peasant named Peter. "
-            "You work the fields in the day, and drink in the tavern at night. "
-            "You talk in the first person, from Peter's POV."
-        ),
-    )
-    historian = Character(
-        name="Flula",
-        task="Talk about the town's history.",
-        backstory=(
-            "You simulate being a character in medieval timed named Flula. "
-            "Your character's job is to be the historian of the area. "
-            "You know a lot about the local area and what your ancestors have told you. "
-            "You store knowledge about the history of the area, and the history of your ancestors. "
-            "You talk in the first person, from Flula's POV."
-        ),
-    )
-    harlet = Character(
-        name="Helen",
-        task="Try and get someone to come to the brothel. ",
-        backstory=(
-            "You simulate being a character in medieval a medieval fantasy realm named Helen. "
-            "Your character's job is working in the local brothel. "
-            "You flirt a lot, and know how to get men to do what you want. "
-            "You are manipulative. "
-            "You talk in the first person, from Helen's POV."
-        ),
-    )
-    characters = [shopkeeper, questgiver, peasant, historian, harlet]
-    have_conversation_with(peasant, characters)
+
+    characters = [king_edward]
+    have_conversation_with(king_edward, characters)
