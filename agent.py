@@ -2,12 +2,11 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import json
 import os
-import logging
+from log import log
 from enum import Enum
 
 
 load_dotenv()
-logging.basicConfig(filename=".log", filemode="w+", level=logging.INFO)
 
 
 class Role(str, Enum):
@@ -40,14 +39,14 @@ class Agent:
                 self.add_message(response, role=Role.ASSISTANT)
                 return response
             except Exception as e:
-                logging.warning("There was a problem generating a response. Retrying.")
+                log.warning("There was a problem generating a response. Retrying.")
 
     def add_message(self, message: str, role: Role):
         """
         Adds a new message to the message history.
         """
         new_message = {"role": role, "content": message}
-        logging.info(new_message)
+        log.info(new_message)
         self.messages.append(new_message)
 
 
@@ -68,7 +67,7 @@ def execute_lone_task(task: str):
         response = completion.choices[0].message.content
         return response
     except Exception as e:
-        logging.warning("There was a problem generating a response. Retrying.")
+        log.warning("There was a problem generating a response. Retrying.")
 
 
 class FunctionCallingAgent(Agent):
@@ -103,4 +102,4 @@ class FunctionCallingAgent(Agent):
                         function_responses.append(function_response)
                 return function_responses
             except Exception as e:
-                logging.warning("There was a problem generating a response. Retrying.")
+                log.warning("There was a problem generating a response. Retrying.")

@@ -1,12 +1,11 @@
-from agent import Agent, Role, execute_lone_task
+from agent import Agent, Role
 import json
-from utils import extract_methods, tts, record_audio, History, log_decorator
+from utils import extract_methods, tts, record_audio, History
 from collections import defaultdict
-import logging
+from log import log
 import random
 from openai import OpenAI
 import time
-import os
 
 
 class Character:
@@ -20,9 +19,8 @@ class Character:
         self._voice = random.choice(
             ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
         )
-        logging.info(f"New character created: {self.name}")
+        log.info(f"New character created: {self.name}")
 
-    @log_decorator
     def greet(self, character: str):
         self.in_conversation_with = character
         msg = (
@@ -95,17 +93,17 @@ class Character:
             self.react(f"{self.in_conversation_with} rejected the purchase.")
             return
         self.gold += price
-        logging.info(f"sold {self.in_conversation_with}: {item} for {price} gold")
+        log.info(f"sold {self.in_conversation_with}: {item} for {price} gold")
         self.say(message=f"Thanks, enjoy the {item}, do come again.")
 
     def gift_item(self, item: str):
         self.inventory.remove(item)
-        logging.info(f"Gifted {self.in_conversation_with}: {item}")
+        log.info(f"Gifted {self.in_conversation_with}: {item}")
 
     def buy_item(self, item: str, price: int):
         self.inventory.append(item)
         self.gold -= price
-        logging.info(f"{self.name} bought {item} for {price} gold")
+        log.info(f"{self.name} bought {item} for {price} gold")
         self.react(f"You just bought {item}.")
 
     def react(self, action: str):
@@ -163,14 +161,14 @@ class Character:
                     func_info = tool_calls[0].function
                     func_name = func_info.name
                     func_args = json.loads(func_info.arguments)
-                    logging.info(f"calling {func_name}({func_args})")
+                    log.info(f"calling {func_name}({func_args})")
                     self.__getattribute__(func_name)(**func_args)
-                    logging.info(f"called {func_name}({func_args})")
+                    log.info(f"called {func_name}({func_args})")
                 else:
                     self.say(completion.choices[0].message.content)
                 break
             except Exception as e:
-                logging.warning("Failed to call a function or reply.")
+                log.warning("Failed to call a function or reply.")
 
 
 def have_conversation_with(character: Character, characters: list):

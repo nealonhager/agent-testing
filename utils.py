@@ -11,7 +11,7 @@ import wave
 import keyboard
 from pydub import AudioSegment
 from pydub.silence import detect_nonsilent
-import logging
+from log import log
 
 
 load_dotenv()
@@ -160,12 +160,5 @@ def record_audio():
     trimmed_sound.export("trimmed_output.wav", format="wav")
 
     print("Saved trimmed recording to 'trimmed_output.wav'.")
-
-
-def log_decorator(func):
-    def wrapper(*args,**kwargs):
-        logging.info(func.__qualname__, args,kwargs)
-        func(*args,**kwargs)
-    return wrapper
 
     
