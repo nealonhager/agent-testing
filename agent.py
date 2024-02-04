@@ -51,6 +51,26 @@ class Agent:
         self.messages.append(new_message)
 
 
+def execute_lone_task(task: str):
+    client = OpenAI()
+    try:
+        completion = client.chat.completions.create(
+            model=os.getenv("GPT_MODEL"),
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Please just reply to the users request. The user knows you are an AI and referencing it just gets annoying. it would be polite to only speak when spoken to.",
+                },
+                {"role": "user", "content": task},
+            ],
+        )
+
+        response = completion.choices[0].message.content
+        return response
+    except Exception as e:
+        logging.warning("There was a problem generating a response. Retrying.")
+
+
 class FunctionCallingAgent(Agent):
     def __init__(self, task: str, backstory: str, tools: list, function_map: dict):
         super().__init__(task=task, backstory=backstory)
@@ -84,4 +104,3 @@ class FunctionCallingAgent(Agent):
                 return function_responses
             except Exception as e:
                 logging.warning("There was a problem generating a response. Retrying.")
-

@@ -1,4 +1,4 @@
-from agent import Agent, Role
+from agent import Agent, Role, execute_lone_task
 import json
 from utils import extract_methods, tts, record_audio, History
 from collections import defaultdict
@@ -6,6 +6,7 @@ import logging
 import random
 from openai import OpenAI
 import time
+import os
 
 
 class Character:
@@ -37,9 +38,9 @@ class Character:
 
     def stop_conversation(self):
         self.say(f"Goodbye, {self.in_conversation_with}.")
-        self.conversation_history[
-            self.in_conversation_with
-        ].file_name = f"{self.name}_{self.in_conversation_with}_history.txt"
+        self.conversation_history[self.in_conversation_with].file_name = (
+            f"{self.name}_{self.in_conversation_with}_history.txt"
+        )
         self.conversation_history[self.in_conversation_with].save()
         self.in_conversation_with = None
 
@@ -117,9 +118,11 @@ class Character:
             role=Role.SYSTEM,
         )
         self.agent.add_message(
-            (f"How do you, {self.name}, react next? "
-            f"gold: {self.gold}. inventory: {self.inventory}. "
-            "Please use a tool i've given you."),
+            (
+                f"How do you, {self.name}, react next? "
+                f"gold: {self.gold}. inventory: {self.inventory}. "
+                "Please use a tool i've given you."
+            ),
             role=Role.SYSTEM,
         )
 
@@ -165,7 +168,7 @@ class Character:
                 logging.warning("Failed to call a function or reply.")
 
 
-def have_conversation_with(character: Character):
+def have_conversation_with(character: Character, characters: list):
     character.greet("Nealon")
     _client = OpenAI()
     while character.in_conversation_with is not None:
@@ -176,6 +179,47 @@ def have_conversation_with(character: Character):
         )
         character.react(f'Nealon says: "{transcript.text}"')
 
+        create_new_characters(
+            known_characters=characters,
+            dialog=json.dumps(character.conversation_history[character.in_conversation_with]._history)
+        )
+
+
+def create_new_characters(known_characters: list, dialog: str):
+    x = Agent(
+        "Please look at the dialog and list of characters, and return only new characters."
+    )
+    x.add_message(
+        json.dumps({"dialog":"bobby ate cake with peter","characters":["peter"]}),
+        role=Role.SYSTEM,
+    )
+    x.add_message(
+        "Bobby",
+        role=Role.ASSISTANT,
+    )
+    x.add_message(
+        json.dumps({"dialog":"bobby and randall ate cake with peter","characters":["peter"]}),
+        role=Role.SYSTEM,
+    )
+    x.add_message(
+        "Bobby,Randall",
+        role=Role.ASSISTANT,
+    )
+    x.add_message(
+        json.dumps({"dialog":"bobby and randall ate cake with peter","characters":["peter","randall","peter"]}),
+        role=Role.SYSTEM,
+    )
+    x.add_message(
+        "",
+        role=Role.ASSISTANT,
+    )
+    new_characters = x.execute_task(
+        json.dumps({"dialog": dialog, "characters": [c.name for c in known_characters]})
+    )
+    new_characters = new_characters.split(",")
+
+    for c in new_characters:
+        known_characters.append(Character(c,"",""))
 
 if __name__ == "__main__":
     shopkeeper = Character(
@@ -232,4 +276,4 @@ if __name__ == "__main__":
         ),
     )
     characters = [shopkeeper, questgiver, peasant, historian, harlet]
-    have_conversation_with(peasant)
+    have_conversation_with(peasant, characters)
