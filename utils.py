@@ -129,7 +129,7 @@ def record_audio():
     stream = audio.open(format=FORMAT, channels=CHANNELS,
                         rate=RATE, input=True,
                         frames_per_buffer=CHUNK)
-    print("Recording... Press Space Bar to stop.")
+    print("Recording... Press 'B' to stop.")
 
     frames = []
 
@@ -159,6 +159,6 @@ def record_audio():
     trimmed_sound = sound[nonsilent_chunks[0][0]:nonsilent_chunks[-1][1]]
     trimmed_sound.export("trimmed_output.wav", format="wav")
 
-    print("Saved trimmed recording to 'trimmed_output.wav'.")
+    # print("Saved trimmed recording to 'trimmed_output.wav'.")
 
     
